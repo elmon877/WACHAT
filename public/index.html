@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Elmon Chat</title>
+<style>
+/* ===== RESET ===== */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --g:#00a884;--gd:#008f72;--gh:#005c4b;
+  --hd:#202c33;--bg:#0b141a;--pn:#111b21;
+  --ib:#2a3942;--bo:#005c4b;--bi:#202c33;
+  --tx:#e9edef;--tm:#8696a0;--br:#2a3942;
+  --rd:#ff6b6b;--blue:#34b7f1;--yl:#ffd60a;
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);display:flex;justify-content:center;align-items:center;}
+
+/* ===== LAYOUT UTAMA ===== */
+.app{width:100%;max-width:420px;height:100vh;max-height:780px;background:var(--pn);display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.7);}
+@media(max-width:430px){.app{max-height:100vh;border-radius:0;}}
+
+/* ===== SCREENS ===== */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--pn);z-index:1;transition:transform .3s ease,opacity .3s ease;}
+.screen.hidden{transform:translateX(100%);opacity:0;pointer-events:none;}
+.screen.slide-left{transform:translateX(-30%);opacity:0;pointer-events:none;}
+
+/* ===== HEADER ===== */
+.hdr{background:var(--hd);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;min-height:60px;}
+.hdr-back{background:none;border:none;color:var(--g);font-size:20px;cursor:pointer;padding:4px 8px 4px 0;display:none;}
+.hdr-ava{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;font-size:20px;display:flex;align-items:center;justify-content:center;background:var(--ib);}
+.hdr-info{flex:1;min-width:0;}
+.hdr-info .title{font-size:16px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-info .sub{font-size:12px;color:var(--tm);display:flex;align-items:center;gap:4px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--g);animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hdr-acts{display:flex;gap:4px;}
+.hdr-btn{background:none;border:none;color:var(--tm);font-size:18px;cursor:pointer;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+.hdr-btn:hover{background:rgba(255,255,255,.08);color:var(--tx);}
+
+/* ===== BOTTOM NAV ===== */
+.bot-nav{background:var(--hd);display:flex;flex-shrink:0;border-top:1px solid var(--br);}
+.bot-btn{flex:1;background:none;border:none;color:var(--tm);padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;cursor:pointer;transition:color .2s;position:relative;}
+.bot-btn .ico{font-size:22px;}
+.bot-btn.active{color:var(--g);}
+.bot-btn .badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--rd);color:white;font-size:10px;font-weight:700;width:18px;height:18px;border-radius:50%;display:none;align-items:center;justify-content:center;}
+.bot-btn .badge.show{display:flex;}
+
+/* ===== CONN STATUS ===== */
+.conn-bar{text-align:center;font-size:11px;padding:5px;color:var(--tm);flex-shrink:0;display:none;}
+.conn-bar.show{display:block;}
+.conn-bar.ok{color:var(--g);}
+.conn-bar.err{color:var(--rd);background:rgba(255,107,107,.08);}
+
+/* ===== SCROLL AREA ===== */
+.scroll{flex:1;overflow-y:auto;}
+.scroll::-webkit-scrollbar{width:4px;}
+.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px;}
+
+/* ===== SPLASH / LOGIN ===== */
+#s-splash{background:var(--g);z-index:100;}
+.splash-inner{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:30px;}
+.splash-logo{font-size:80px;animation:pop .5s ease;}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.splash-title{color:white;font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.splash-sub{color:rgba(255,255,255,.8);font-size:14px;text-align:center;}
+.splash-btn{background:white;color:var(--g);border:none;padding:14px 40px;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.2);transition:transform .2s;}
+.splash-btn:hover{transform:scale(1.04);}
+
+/* ===== SETUP PROFIL ===== */
+#s-setup{z-index:99;}
+.setup-body{flex:1;display:flex;flex-direction:column;align-items:center;padding:30px 24px;gap:20px;overflow-y:auto;}
+.setup-ava-wrap{position:relative;cursor:pointer;}
+.setup-ava{width:100px;height:100px;border-radius:50%;object-fit:cover;background:var(--ib);display:flex;align-items:center;justify-content:center;font-size:50px;border:3px solid var(--g);}
+.setup-ava-edit{position:absolute;bottom:0;right:0;background:var(--g);color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.setup-ava input[type=file]{display:none;}
+.setup-desc{color:var(--tm);font-size:13px;text-align:center;}
+.inp-group{width:100%;}
+.inp-group label{font-size:12px;color:var(--g);font-weight:600;display:block;margin-bottom:6px;}
+.inp-group input,.inp-group textarea{width:100%;background:var(--ib);border:none;border-bottom:2px solid var(--g);padding:10px 12px;color:var(--tx);font-size:15px;outline:none;border-radius:6px 6px 0 0;}
+.inp-group textarea{resize:none;height:70px;border-radius:6px;}
+.inp-group input::placeholder,.inp-group textarea::placeholder{color:var(--tm);}
+.setup-next{width:100%;background:var(--g);color:white;border:none;padding:14px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-top:10px;transition:background .2s;}
+.setup-next:hover{background:var(--gd);}
+
+/* ===== CHAT LIST (BERANDA) ===== */
+.chat-list-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .15s;}
+.chat-list-item:hover,.chat-list-item:active{background:var(--ib);}
+.cli-ava{width:50px;height:50px;border-radius:50%;object-fit:cover;background:var(--ib);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.cli-info{flex:1;min-width:0;}
+.cli-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.cli-name{font-size:16px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
+.cli-time{font-size:11px;color:var(--tm);flex-shrink:0;}
+.cli-bot{display:flex;justify-content:space-between;align-items:center;}
+.cli-preview{font-size:13px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+.cli-unread{background:var(--g);color:white;font-size:11px;font-weight:700;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;}
+.section-hdr{padding:8px 16px;font-size:12px;color:var(--g);font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.2);}
+.fab{position:absolute;bottom:80px;right:16px;background:var(--g);color:white;width:56px;height:56px;border-radius:50%;border:none;font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,168,132,.4);z-index:10;transition:transform .2s;}
+.fab:hover{transform:scale(1.08);}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tm);padding:40px;}
+.empty-state .es-ico{font-size:60px;opacity:.4;}
+.empty-state p{font-size:14px;text-align:center;}
+
+/* ===== ROOM CHAT ===== */
+#s-room{z-index:50;}
+.msgs{flex:1;padding:10px 10px 6px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;background:var(--bg) url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png') center/400px;}
+.msgs::-webkit-scrollbar{width:4px;}
+.msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px;}
+.date-div{text-align:center;margin:8px 0;}
+.date-div span{background:rgba(17,27,33,.85);color:var(--tm);font-size:11px;padding:4px 12px;border-radius:8px;backdrop-filter:blur(4px);}
+.mw{display:flex;flex-direction:column;width:100%;margin:1px 0;}
+.mw.r{align-items:flex-end;}
+.mw.l{align-items:flex-start;}
+.mb{padding:6px 10px 4px;border-radius:8px;max-width:80%;word-break:break-word;font-size:14px;line-height:1.45;animation:popIn .2s ease;}
+@keyframes popIn{from{opacity:0;transform:scale(.95) translateY(4px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.mw.r .mb{background:var(--bo);color:var(--tx);border-top-right-radius:2px;}
+.mw.l .mb{background:var(--bi);color:var(--tx);border-top-left-radius:2px;}
+.sname{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:2px;display:block;}
+.mw.r .sname{display:none;}
+.mmeta{display:flex;justify-content:flex-end;align-items:center;gap:2px;font-size:10px;color:var(--tm);margin-top:2px;}
+.mw.r .mmeta::after{content:'✓✓';color:var(--g);font-size:11px;margin-left:2px;}
+.typing{display:none;padding:4px 12px;}
+.typing.show{display:flex;}
+.typing-bub{background:var(--bi);padding:8px 12px;border-radius:8px;border-top-left-radius:2px;display:flex;gap:4px;align-items:center;}
+.tdot{width:6px;height:6px;border-radius:50%;background:var(--tm);animation:tb 1.2s infinite;}
+.tdot:nth-child(2){animation-delay:.2s;}
+.tdot:nth-child(3){animation-delay:.4s;}
+@keyframes tb{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+.typing-lbl{font-size:11px;color:var(--tm);margin-left:6px;}
+.inp-area{background:var(--hd);padding:8px 12px;display:flex;align-items:flex-end;gap:8px;border-top:1px solid var(--br);flex-shrink:0;}
+.inp-wrap{flex:1;background:var(--ib);border-radius:22px;display:flex;align-items:flex-end;padding:6px 14px;gap:8px;min-height:44px;}
+#msg-inp{flex:1;background:none;border:none;color:var(--tx);font-size:14px;outline:none;resize:none;max-height:100px;min-height:22px;line-height:1.5;font-family:inherit;}
+#msg-inp::placeholder{color:var(--tm);}
+.emoji-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--tm);flex-shrink:0;padding:0;}
+.send-btn{background:var(--g);color:white;border:none;width:44px;height:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,168,132,.4);transition:background .2s,transform .1s;}
+.send-btn:hover{background:var(--gd);}
+.send-btn:active{transform:scale(.92);}
+
+/* ===== STATUS VIEW ===== */
+.status-my{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;}
+.status-ring{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+.status-ring.has{background:conic-gradient(var(--g) 0deg 340deg,rgba(255,255,255,.15) 340deg);}
+.status-ring.none{background:conic-gradient(var(--tm) 0deg 360deg);}
+.status-inner{width:46px;height:46px;border-radius:50%;object-fit:cover;background:var(--ib);display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid var(--pn);}
+.status-plus{position:absolute;bottom:0;right:0;background:var(--g);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:white;border:2px solid var(--pn);}
+.status-detail{flex:1;}
+.status-detail .sn{font-size:15px;font-weight:600;color:var(--tx);}
+.status-detail .st{font-size:12px;color:var(--tm);margin-top:2px;}
+.add-status-btn{background:var(--g);color:white;border:none;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.status-viewer{position:fixed;inset:0;background:black;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.status-viewer.show{display:flex;}
+.sv-bar{width:90%;height:3px;background:rgba(255,255,255,.3);border-radius:2px;margin:16px 0 0;}
+.sv-fill{height:100%;background:white;border-radius:2px;animation:svfill 5s linear forwards;}
+@keyframes svfill{from{width:0}to{width:100%}}
+.sv-close{position:absolute;top:14px;right:14px;background:none;border:none;color:white;font-size:24px;cursor:pointer;}
+.sv-content{color:white;font-size:18px;padding:30px;text-align:center;background:rgba(0,168,132,.2);border-radius:16px;max-width:80%;}
+.sv-user{color:rgba(255,255,255,.8);font-size:13px;margin-top:12px;}
+
+/* ===== KONTAK ===== */
+.kontak-item{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .15s;}
+.kontak-item:hover{background:var(--ib);}
+.ki-ava{width:46px;height:46px;border-radius:50%;object-fit:cover;background:var(--ib);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.ki-info{flex:1;min-width:0;}
+.ki-name{font-size:15px;font-weight:600;color:var(--tx);}
+.ki-phone{font-size:12px;color:var(--tm);margin-top:2px;}
+.ki-acts{display:flex;gap:6px;}
+.ki-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--tm);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.ki-btn:hover{background:rgba(255,255,255,.08);color:var(--tx);}
+.add-kontak-form{background:var(--hd);margin:12px 16px;padding:16px;border-radius:12px;display:none;flex-direction:column;gap:10px;}
+.add-kontak-form.show{display:flex;}
+.akf-inp{background:var(--ib);border:none;border-bottom:2px solid var(--g);padding:10px 12px;color:var(--tx);font-size:14px;outline:none;width:100%;border-radius:6px 6px 0 0;}
+.akf-inp::placeholder{color:var(--tm);}
+.akf-row{display:flex;gap:8px;}
+.akf-btn{flex:1;padding:10px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;}
+.akf-btn.ok{background:var(--g);color:white;}
+.akf-btn.cancel{background:var(--ib);color:var(--tm);}
+
+/* ===== GRUP ===== */
+.grup-form{background:var(--hd);margin:12px 16px;padding:16px;border-radius:12px;display:none;flex-direction:column;gap:10px;}
+.grup-form.show{display:flex;}
+.member-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{background:var(--g);color:white;padding:4px 10px 4px 8px;border-radius:20px;font-size:12px;display:flex;align-items:center;gap:4px;}
+.chip button{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:14px;padding:0;line-height:1;}
+.member-check-list{max-height:160px;overflow-y:auto;border:1px solid var(--br);border-radius:8px;}
+.mcl-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .15s;}
+.mcl-item:hover{background:var(--ib);}
+.mcl-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--tm);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s;}
+.mcl-check.checked{background:var(--g);border-color:var(--g);color:white;}
+
+/* ===== PROFIL VIEW ===== */
+.prof-hero{background:var(--hd);padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px;border-bottom:1px solid var(--br);}
+.prof-ava-wrap{position:relative;cursor:pointer;}
+.prof-ava{width:90px;height:90px;border-radius:50%;object-fit:cover;background:var(--ib);display:flex;align-items:center;justify-content:center;font-size:46px;border:3px solid var(--g);}
+.prof-ava-edit{position:absolute;bottom:2px;right:2px;background:var(--g);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:white;border:2px solid var(--pn);}
+.prof-name{font-size:20px;font-weight:700;color:var(--tx);}
+.prof-phone{font-size:13px;color:var(--tm);}
+.prof-section{padding:16px;}
+.prof-field{background:var(--hd);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s;}
+.prof-field:hover{background:var(--ib);}
+.pf-ico{font-size:20px;color:var(--g);flex-shrink:0;width:28px;text-align:center;}
+.pf-info{flex:1;}
+.pf-label{font-size:11px;color:var(--tm);margin-bottom:2px;}
+.pf-val{font-size:15px;color:var(--tx);}
+.pf-edit{color:var(--tm);font-size:16px;}
+.prof-edit-modal{position:absolute;inset:0;background:var(--pn);z-index:200;display:none;flex-direction:column;}
+.prof-edit-modal.show{display:flex;}
+.pem-body{flex:1;padding:24px 20px;display:flex;flex-direction:column;gap:16px;}
+.pem-inp{background:var(--ib);border:none;border-bottom:2px solid var(--g);padding:12px 14px;color:var(--tx);font-size:16px;outline:none;width:100%;border-radius:6px 6px 0 0;}
+.pem-inp::placeholder{color:var(--tm);}
+.pem-save{background:var(--g);color:white;border:none;padding:12px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;width:100%;}
+
+/* ===== MODAL / OVERLAY ===== */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:150;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px);}
+.overlay.show{display:flex;}
+.modal-sheet{background:var(--hd);border-radius:20px 20px 0 0;width:100%;padding:20px;display:flex;flex-direction:column;gap:14px;animation:sheetUp .25s ease;}
+@keyframes sheetUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-sheet h3{font-size:16px;font-weight:700;color:var(--tx);}
+.modal-sheet .close-btn{align-self:flex-end;background:none;border:none;color:var(--tm);font-size:20px;cursor:pointer;margin-top:-34px;}
+.sheet-opt{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;color:var(--tx);font-size:15px;transition:color .2s;}
+.sheet-opt:last-child{border:none;}
+.sheet-opt:hover{color:var(--g);}
+.sheet-opt .so-ico{font-size:22px;width:30px;text-align:center;}
+
+/* ===== EMOJI PICKER ===== */
+.emoji-picker{position:absolute;bottom:70px;left:12px;background:#1a2733;border-radius:14px;padding:12px;display:flex;flex-wrap:wrap;gap:4px;width:230px;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,.5);display:none;}
+.emoji-picker.show{display:flex;}
+.ep-emoji{background:none;border:none;font-size:22px;cursor:pointer;border-radius:6px;padding:4px;transition:background .15s;}
+.ep-emoji:hover{background:rgba(255,255,255,.1);}
+
+/* ===== TOAST ===== */
+.toast{position:absolute;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e293b;color:white;padding:10px 20px;border-radius:24px;font-size:13px;z-index:300;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ===== SEARCH BAR ===== */
+.search-bar{padding:10px 16px;background:var(--pn);flex-shrink:0;}
+.search-inp{width:100%;background:var(--ib);border:none;padding:10px 16px 10px 40px;border-radius:24px;color:var(--tx);font-size:14px;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238696a0' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.44 1.347a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:14px center;}
+.search-inp::placeholder{color:var(--tm);}
+
+/* ===== CALL VIEW ===== */
+.call-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(160deg,#0d2b24,#0b141a);padding:30px;}
+.call-ava{width:110px;height:110px;border-radius:50%;background:var(--ib);display:flex;align-items:center;justify-content:center;font-size:54px;border:4px solid var(--g);box-shadow:0 0 30px rgba(0,168,132,.3);}
+.call-name{font-size:22px;font-weight:700;color:var(--tx);}
+.call-status{font-size:14px;color:var(--tm);}
+.call-timer{font-size:28px;font-weight:300;color:white;letter-spacing:2px;}
+.call-btns{display:flex;gap:28px;margin-top:20px;}
+.call-btn{width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;transition:transform .2s;}
+.call-btn:active{transform:scale(.92);}
+.call-btn.end{background:var(--rd);}
+.call-btn.mute{background:var(--ib);}
+.call-btn.spk{background:var(--ib);}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ===== SPLASH ===== -->
+<div class="screen" id="s-splash">
+  <div class="splash-inner">
+    <div class="splash-logo">💬</div>
+    <div class="splash-title">Elmon Chat</div>
+    <div class="splash-sub">Hubungkan diri kamu dengan siapa saja,<br>kapan saja, di mana saja.</div>
+    <button class="splash-btn" onclick="goSetup()">Mulai Sekarang →</button>
+  </div>
+</div>
+
+<!-- ===== SETUP PROFIL ===== -->
+<div class="screen hidden" id="s-setup">
+  <div class="hdr">
+    <div class="hdr-info"><div class="title">Buat Profil</div><div class="sub">Langkah 1 dari 1</div></div>
+  </div>
+  <div class="setup-body">
+    <div class="setup-ava-wrap" onclick="document.getElementById('setup-file').click()">
+      <div class="setup-ava" id="setup-ava-img">📷</div>
+      <div class="setup-ava-edit">✏️</div>
+      <input type="file" id="setup-file" accept="image/*" onchange="previewSetupAva(this)">
+    </div>
+    <div class="setup-desc">Foto & nama akan terlihat oleh semua anggota grup</div>
+    <div class="inp-group"><label>NAMA KAMU *</label><input type="text" id="setup-name" placeholder="Masukkan nama..." maxlength="30"></div>
+    <div class="inp-group"><label>NOMOR HP *</label><input type="text" id="setup-phone" placeholder="+62 8xx-xxxx-xxxx"></div>
+    <div class="inp-group"><label>BIO / INFO</label><textarea id="setup-bio" placeholder="Ceritakan sesuatu tentang dirimu..."></textarea></div>
+    <button class="setup-next" onclick="selesaiSetup()">Lanjutkan ✓</button>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="screen hidden" id="s-main">
+  <div class="hdr" id="main-hdr">
+    <div class="hdr-ava" id="my-ava-hdr">👤</div>
+    <div class="hdr-info">
+      <div class="title" id="main-hdr-title">Elmon Chat</div>
+      <div class="sub"><div class="dot"></div><span id="online-lbl">...</span></div>
+    </div>
+    <div class="hdr-acts">
+      <button class="hdr-btn" onclick="showSearch()" title="Cari">🔍</button>
+      <button class="hdr-btn" onclick="showMainMenu()" title="Menu">⋮</button>
+    </div>
+  </div>
+  <div class="conn-bar" id="conn-bar">⏳ Menghubungkan...</div>
+
+  <!-- BERANDA -->
+  <div class="scroll" id="tab-beranda" style="position:relative">
+    <div id="chat-list-container">
+      <div class="empty-state" id="empty-beranda">
+        <div class="es-ico">💬</div>
+        <p>Belum ada obrolan.<br>Buka kontak untuk mulai chat.</p>
+      </div>
+    </div>
+    <button class="fab" onclick="showTab('kontak')" title="Kontak">💬</button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="scroll" id="tab-status" style="display:none">
+    <div class="status-my">
+      <div class="status-ring none" id="my-status-ring">
+        <div class="status-inner" id="my-status-ava">👤</div>
+        <div class="status-plus">+</div>
+      </div>
+      <div class="status-detail">
+        <div class="sn" id="my-status-name">Saya</div>
+        <div class="st" id="my-status-hint">Ketuk untuk menambah status</div>
+      </div>
+      <button class="add-status-btn" onclick="buatStatus()">+ Status</button>
+    </div>
+    <div class="section-hdr">Pembaruan Terkini</div>
+    <div id="status-list"></div>
+  </div>
+
+  <!-- KONTAK -->
+  <div class="scroll" id="tab-kontak" style="display:none">
+    <div style="padding:10px 16px;display:flex;gap:8px">
+      <button style="flex:1;background:var(--g);color:white;border:none;padding:10px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer" onclick="toggleAddKontak()">+ Tambah Kontak</button>
+      <button style="flex:1;background:var(--ib);color:var(--tx);border:none;padding:10px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer" onclick="toggleBuatGrup()">👥 Buat Grup</button>
+    </div>
+
+    <!-- Form Tambah Kontak -->
+    <div class="add-kontak-form" id="form-kontak">
+      <div style="font-size:14px;font-weight:700;color:var(--tx)">➕ Tambah Kontak</div>
+      <input class="akf-inp" id="ak-nama" placeholder="Nama kontak...">
+      <input class="akf-inp" id="ak-phone" placeholder="Nomor HP (+62...)">
+      <div class="akf-row">
+        <button class="akf-btn ok" onclick="simpanKontak()">Simpan</button>
+        <button class="akf-btn cancel" onclick="toggleAddKontak()">Batal</button>
+      </div>
+    </div>
+
+    <!-- Form Buat Grup -->
+    <div class="grup-form" id="form-grup">
+      <div style="font-size:14px;font-weight:700;color:var(--tx)">👥 Buat Grup Baru</div>
+      <input class="akf-inp" id="gn-nama" placeholder="Nama grup...">
+      <div style="font-size:12px;color:var(--tm)">Pilih anggota:</div>
+      <div class="member-chips" id="selected-chips"></div>
+      <div class="member-check-list" id="member-list"></div>
+      <div class="akf-row">
+        <button class="akf-btn ok" onclick="buatGrup()">Buat Grup</button>
+        <button class="akf-btn cancel" onclick="toggleBuatGrup()">Batal</button>
+      </div>
+    </div>
+
+    <div class="section-hdr">Kontak Kamu</div>
+    <div id="kontak-list"></div>
+  </div>
+
+  <!-- PROFIL -->
+  <div id="tab-profil" style="display:none;flex:1;overflow-y:auto;flex-direction:column;">
+    <div class="prof-hero">
+      <div class="prof-ava-wrap" onclick="document.getElementById('prof-file').click()">
+        <div class="prof-ava" id="prof-ava-el">👤</div>
+        <div class="prof-ava-edit">📷</div>
+        <input type="file" id="prof-file" accept="image/*" style="display:none" onchange="gantiAva(this)">
+      </div>
+      <div class="prof-name" id="prof-name-el">-</div>
+      <div class="prof-phone" id="prof-phone-el">-</div>
+    </div>
+    <div class="prof-section">
+      <div class="prof-field" onclick="editField('nama')"><div class="pf-ico">👤</div><div class="pf-info"><div class="pf-label">Nama</div><div class="pf-val" id="pf-nama">-</div></div><div class="pf-edit">✏️</div></div>
+      <div class="prof-field" onclick="editField('phone')"><div class="pf-ico">📱</div><div class="pf-info"><div class="pf-label">Nomor HP</div><div class="pf-val" id="pf-phone">-</div></div><div class="pf-edit">✏️</div></div>
+      <div class="prof-field" onclick="editField('bio')"><div class="pf-ico">📝</div><div class="pf-info"><div class="pf-label">Info / Bio</div><div class="pf-val" id="pf-bio">-</div></div><div class="pf-edit">✏️</div></div>
+      <div class="prof-field" style="cursor:default;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px"><div class="pf-ico">🌙</div><div class="pf-info"><div class="pf-label">Tema</div><div class="pf-val">Dark Mode</div></div></div>
+        <div style="background:var(--g);width:44px;height:24px;border-radius:12px;position:relative"><div style="position:absolute;right:2px;top:2px;width:20px;height:20px;background:white;border-radius:50%;"></div></div>
+      </div>
+      <div class="prof-field" onclick="logout()" style="color:var(--rd)">
+        <div class="pf-ico">🚪</div><div class="pf-info"><div class="pf-label">Akun</div><div class="pf-val" style="color:var(--rd)">Keluar</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profil Modal -->
+  <div class="prof-edit-modal" id="prof-edit-modal">
+    <div class="hdr">
+      <button class="hdr-back" style="display:flex" onclick="document.getElementById('prof-edit-modal').classList.remove('show')">←</button>
+      <div class="hdr-info"><div class="title" id="pem-title">Edit</div></div>
+      <button class="hdr-btn" onclick="simpanEditField()">✓</button>
+    </div>
+    <div class="pem-body">
+      <input class="pem-inp" id="pem-inp" placeholder="">
+      <div style="font-size:12px;color:var(--tm)" id="pem-desc"></div>
+      <button class="pem-save" onclick="simpanEditField()">Simpan</button>
+    </div>
+  </div>
+
+  <div class="bot-nav" id="bot-nav">
+    <button class="bot-btn active" onclick="showTab('beranda',this)"><span class="ico">💬</span><span>Chat</span></button>
+    <button class="bot-btn" onclick="showTab('status',this)"><span class="ico">⭕</span><span>Status</span><span class="badge" id="status-badge">0</span></button>
+    <button class="bot-btn" onclick="showTab('kontak',this)"><span class="ico">👥</span><span>Kontak</span></button>
+    <button class="bot-btn" onclick="showTab('profil',this)"><span class="ico">👤</span><span>Profil</span></button>
+  </div>
+</div>
+
+<!-- ===== ROOM CHAT ===== -->
+<div class="screen hidden" id="s-room">
+  <div class="hdr" id="room-hdr">
+    <button class="hdr-back" style="display:flex" onclick="kembali()">←</button>
+    <div class="hdr-ava" id="room-ava">👤</div>
+    <div class="hdr-info">
+      <div class="title" id="room-title">-</div>
+      <div class="sub" id="room-sub"><div class="dot"></div><span>online</span></div>
+    </div>
+    <div class="hdr-acts">
+      <button class="hdr-btn" onclick="mulaiTelepon()" title="Telepon">📞</button>
+      <button class="hdr-btn" onclick="showRoomMenu()" title="Menu">⋮</button>
+    </div>
+  </div>
+  <div class="msgs" id="box-pesan"></div>
+  <div class="typing" id="typing-el">
+    <div class="typing-bub"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+    <div class="typing-lbl" id="typing-lbl">mengetik...</div>
+  </div>
+  <div class="inp-area">
+    <div class="inp-wrap">
+      <button class="emoji-btn" onclick="toggleEmoji()">😊</button>
+      <textarea id="msg-inp" placeholder="Ketik pesan..." rows="1" oninput="autoResize(this)"></textarea>
+    </div>
+    <button class="send-btn" id="send-btn" onclick="kirimPesan()">➤</button>
+  </div>
+  <div class="emoji-picker" id="emoji-picker"></div>
+</div>
+
+<!-- ===== PANGGILAN ===== -->
+<div class="screen hidden" id="s-call">
+  <div class="call-screen">
+    <div class="call-ava" id="call-ava">👤</div>
+    <div class="call-name" id="call-name">-</div>
+    <div class="call-status" id="call-status">Memanggil...</div>
+    <div class="call-timer" id="call-timer" style="display:none">00:00</div>
+    <div class="call-btns">
+      <button class="call-btn mute" id="mute-btn" onclick="toggleMute()" title="Mute">🎤</button>
+      <button class="call-btn end" onclick="akhiriTelepon()" title="Tutup">📵</button>
+      <button class="call-btn spk" id="spk-btn" onclick="toggleSpk()" title="Speaker">🔈</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATUS VIEWER ===== -->
+<div class="status-viewer" id="status-viewer">
+  <div class="sv-bar"><div class="sv-fill" id="sv-fill"></div></div>
+  <button class="sv-close" onclick="tutupStatus()">✕</button>
+  <div class="sv-content" id="sv-content">...</div>
+  <div class="sv-user" id="sv-user"></div>
+</div>
+
+<!-- ===== OVERLAY / MODAL ===== -->
+<div class="overlay" id="overlay" onclick="tutupOverlay()">
+  <div class="modal-sheet" id="modal-sheet" onclick="event.stopPropagation()">
+    <button class="close-btn" onclick="tutupOverlay()">✕</button>
+    <h3 id="modal-title"></h3>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ===========================
+// STATE GLOBAL
+// ===========================
+let me = JSON.parse(localStorage.getItem('elmon_me') || 'null');
+let kontak = JSON.parse(localStorage.getItem('elmon_kontak') || '[]');
+let daftarStatus = JSON.parse(localStorage.getItem('elmon_status') || '[]');
+let daftarGrup = JSON.parse(localStorage.getItem('elmon_grup') || '[]');
+let openRoom = null; // { id, nama, isGrup, ava }
+let callTimer = null;
+let callSeconds = 0;
+let isMuted = false;
+let isSpeaker = false;
+let currentEditField = null;
+let selectedMembers = [];
+let socket;
+
+const EMOJIS = ['😊','😂','❤️','👍','🔥','😭','🙏','😍','🎉','💯','😎','🥰','😅','🤔','👀','✨','🎶','😤','🥳','💪'];
+
+// ===========================
+// INIT
+// ===========================
+function init() {
+  if (!me) {
+    showScreen('s-splash');
+  } else {
+    showScreen('s-main');
+    renderProfil();
+    renderKontakList();
+    renderChatList();
+    renderStatusList();
+    connectSocket();
+  }
+  buatEmojiPicker();
+}
+
+// ===========================
+// SOCKET
+// ===========================
+function connectSocket() {
+  try {
+    socket = io();
+    const bar = document.getElementById('conn-bar');
+
+    socket.on('connect', () => {
+      bar.textContent = '✅ Terhubung';
+      bar.className = 'conn-bar show ok';
+      setTimeout(() => bar.classList.remove('show'), 2000);
+      socket.emit('daftar', { nama: me.nama, nomor: me.nomor });
+    });
+    socket.on('disconnect', () => {
+      bar.textContent = '❌ Terputus — mencoba ulang...';
+      bar.className = 'conn-bar show err';
+    });
+    socket.on('online-count', n => {
+      document.getElementById('online-lbl').textContent = `${n} online`;
+    });
+    socket.on('muat-riwayat', (list) => {
+      document.getElementById('box-pesan').innerHTML = '';
+      if (list.length) tambahDivider('Riwayat');
+      list.forEach(tampilBubble);
+      scrollBawah();
+    });
+    socket.on('terima-pesan', (data) => {
+      if (openRoom && data.roomId === openRoom.id) {
+        tampilBubble(data);
+        scrollBawah();
+      }
+      updateChatPreview(data);
+      if (!openRoom || data.roomId !== openRoom.id) toast(`💬 ${data.nama}: ${data.pesan.substring(0,30)}`);
+    });
+    socket.on('user-mengetik', data => {
+      if (openRoom && data.roomId === openRoom.id && data.nama !== me.nama) {
+        document.getElementById('typing-el').classList.add('show');
+        document.getElementById('typing-lbl').textContent = `${data.nama} mengetik...`;
+      }
+    });
+    socket.on('user-berhenti', () => document.getElementById('typing-el').classList.remove('show'));
+    socket.on('update-status', list => {
+      daftarStatus = list;
+      localStorage.setItem('elmon_status', JSON.stringify(list));
+      renderStatusList();
+      const badge = document.getElementById('status-badge');
+      badge.textContent = list.length;
+      badge.classList.toggle('show', list.length > 0);
+    });
+  } catch(e) {
+    console.log('Socket tidak tersedia (mode offline)');
+    document.getElementById('online-lbl').textContent = 'Offline';
+  }
+}
+
+// ===========================
+// SETUP & LOGIN
+// ===========================
+function goSetup() { showScreen('s-setup'); }
+
+function selesaiSetup() {
+  const nama = document.getElementById('setup-name').value.trim();
+  const nomor = document.getElementById('setup-phone').value.trim();
+  const bio = document.getElementById('setup-bio').value.trim();
+  if (!nama) { toast('⚠️ Nama wajib diisi!'); return; }
+  if (!nomor) { toast('⚠️ Nomor HP wajib diisi!'); return; }
+  const ava = document.getElementById('setup-ava-img').dataset.img || '';
+  me = { nama, nomor, bio, ava };
+  localStorage.setItem('elmon_me', JSON.stringify(me));
+  showScreen('s-main');
+  renderProfil();
+  renderKontakList();
+  renderChatList();
+  connectSocket();
+  toast('✅ Selamat datang, ' + nama + '!');
+}
+
+function previewSetupAva(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const el = document.getElementById('setup-ava-img');
+    el.style.backgroundImage = `url(${e.target.result})`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.textContent = '';
+    el.dataset.img = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function logout() {
+  if (!confirm('Yakin ingin keluar dan hapus data lokal?')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+// ===========================
+// SCREEN NAVIGATION
+// ===========================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.add('hidden');
+    s.classList.remove('slide-left');
+  });
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function showTab(tab, el) {
+  ['beranda','status','kontak','profil'].forEach(t => {
+    const el2 = document.getElementById('tab-' + t);
+    if (el2) el2.style.display = 'none';
+  });
+  const target = document.getElementById('tab-' + tab);
+  if (target) {
+    target.style.display = tab === 'profil' ? 'flex' : 'block';
+  }
+  document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  if (tab === 'kontak') renderMemberList();
+}
+
+function bukaRoom(room) {
+  openRoom = room;
+  document.getElementById('room-title').textContent = room.nama;
+  document.getElementById('room-ava').textContent = room.isGrup ? '👥' : getAvaEmoji(room.nama);
+  if (room.ava) {
+    const el = document.getElementById('room-ava');
+    el.style.backgroundImage = `url(${room.ava})`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.textContent = '';
+  }
+  document.getElementById('room-sub').innerHTML = room.isGrup
+    ? `<span>${room.members ? room.members.length : ''} anggota</span>`
+    : `<div class="dot"></div><span>online</span>`;
+  document.getElementById('box-pesan').innerHTML = '';
+  showScreen('s-room');
+  if (socket) socket.emit('join-room', { roomId: room.id, nama: me.nama });
+}
+
+function kembali() {
+  openRoom = null;
+  showScreen('s-main');
+}
+
+// ===========================
+// CHAT LIST
+// ===========================
+let chatPreviews = JSON.parse(localStorage.getItem('elmon_previews') || '{}');
+
+function renderChatList() {
+  const c = document.getElementById('chat-list-container');
+  const allRooms = [...kontak, ...daftarGrup];
+  if (allRooms.length === 0) {
+    c.innerHTML = `<div class="empty-state" id="empty-beranda"><div class="es-ico">💬</div><p>Belum ada obrolan.<br>Buka kontak untuk mulai chat.</p></div>`;
+    return;
+  }
+  c.innerHTML = allRooms.map(r => {
+    const prev = chatPreviews[r.id] || {};
+    return `
+    <div class="chat-list-item" onclick="bukaRoom(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <div class="cli-ava">${r.isGrup ? '👥' : getAvaEmoji(r.nama)}</div>
+      <div class="cli-info">
+        <div class="cli-top">
+          <div class="cli-name">${escH(r.nama)}</div>
+          <div class="cli-time">${prev.waktu || ''}</div>
+        </div>
+        <div class="cli-bot">
+          <div class="cli-preview">${prev.pesan ? escH(prev.pesan.substring(0,40)) : 'Ketuk untuk chat'}</div>
+          ${prev.unread ? `<div class="cli-unread">${prev.unread}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateChatPreview(data) {
+  chatPreviews[data.roomId] = {
+    pesan: data.nama + ': ' + data.pesan,
+    waktu: data.waktu,
+    unread: (chatPreviews[data.roomId]?.unread || 0) + 1
+  };
+  localStorage.setItem('elmon_previews', JSON.stringify(chatPreviews));
+  renderChatList();
+}
+
+// ===========================
+// KONTAK
+// ===========================
+function toggleAddKontak() {
+  document.getElementById('form-kontak').classList.toggle('show');
+  document.getElementById('form-grup').classList.remove('show');
+}
+function toggleBuatGrup() {
+  document.getElementById('form-grup').classList.toggle('show');
+  document.getElementById('form-kontak').classList.remove('show');
+  renderMemberList();
+}
+
+function simpanKontak() {
+  const nama = document.getElementById('ak-nama').value.trim();
+  const nomor = document.getElementById('ak-phone').value.trim();
+  if (!nama || !nomor) { toast('⚠️ Nama & nomor wajib diisi!'); return; }
+  const id = 'k_' + Date.now();
+  kontak.push({ id, nama, nomor, isGrup: false });
+  localStorage.setItem('elmon_kontak', JSON.stringify(kontak));
+  document.getElementById('ak-nama').value = '';
+  document.getElementById('ak-phone').value = '';
+  document.getElementById('form-kontak').classList.remove('show');
+  renderKontakList();
+  renderChatList();
+  toast('✅ Kontak ' + nama + ' ditambahkan!');
+}
+
+function hapusKontak(id, e) {
+  e.stopPropagation();
+  if (!confirm('Hapus kontak ini?')) return;
+  kontak = kontak.filter(k => k.id !== id);
+  localStorage.setItem('elmon_kontak', JSON.stringify(kontak));
+  renderKontakList();
+  renderChatList();
+  toast('🗑️ Kontak dihapus');
+}
+
+function renderKontakList() {
+  const c = document.getElementById('kontak-list');
+  if (!kontak.length) {
+    c.innerHTML = `<div class="empty-state"><div class="es-ico">👥</div><p>Belum ada kontak.</p></div>`;
+    return;
+  }
+  c.innerHTML = kontak.map(k => `
+    <div class="kontak-item" onclick="bukaRoom(${JSON.stringify(k).replace(/"/g,'&quot;')})">
+      <div class="ki-ava">${getAvaEmoji(k.nama)}</div>
+      <div class="ki-info">
+        <div class="ki-name">${escH(k.nama)}</div>
+        <div class="ki-phone">${escH(k.nomor)}</div>
+      </div>
+      <div class="ki-acts">
+        <button class="ki-btn" onclick="mulaiCallKontak('${k.id}',event)" title="Telepon">📞</button>
+        <button class="ki-btn" onclick="hapusKontak('${k.id}',event)" title="Hapus">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===========================
+// GRUP
+// ===========================
+function renderMemberList() {
+  const c = document.getElementById('member-list');
+  if (!kontak.length) { c.innerHTML = `<div style="padding:12px;color:var(--tm);font-size:13px;">Tambah kontak dulu</div>`; return; }
+  c.innerHTML = kontak.map(k => `
+    <div class="mcl-item" onclick="toggleMember('${k.id}','${escH(k.nama)}')">
+      <div class="mcl-check ${selectedMembers.includes(k.id) ? 'checked' : ''}" id="chk-${k.id}">✓</div>
+      <div class="ki-ava" style="width:36px;height:36px;font-size:18px">${getAvaEmoji(k.nama)}</div>
+      <div style="font-size:14px;color:var(--tx)">${escH(k.nama)}</div>
+    </div>
+  `).join('');
+}
+
+function toggleMember(id, nama) {
+  const idx = selectedMembers.indexOf(id);
+  if (idx === -1) { selectedMembers.push(id); }
+  else { selectedMembers.splice(idx, 1); }
+  renderMemberList();
+  renderSelectedChips();
+}
+
+function renderSelectedChips() {
+  const c = document.getElementById('selected-chips');
+  c.innerHTML = selectedMembers.map(id => {
+    const k = kontak.find(x => x.id === id);
+    if (!k) return '';
+    return `<div class="chip">${escH(k.nama)}<button onclick="toggleMember('${k.id}','')">×</button></div>`;
+  }).join('');
+}
+
+function buatGrup() {
+  const nama = document.getElementById('gn-nama').value.trim();
+  if (!nama) { toast('⚠️ Nama grup wajib diisi!'); return; }
+  if (selectedMembers.length === 0) { toast('⚠️ Pilih minimal 1 anggota!'); return; }
+  const id = 'g_' + Date.now();
+  const members = selectedMembers.map(mid => kontak.find(k => k.id === mid)).filter(Boolean);
+  members.push({ id: 'me', nama: me.nama, nomor: me.nomor });
+  const grup = { id, nama, isGrup: true, members };
+  daftarGrup.push(grup);
+  localStorage.setItem('elmon_grup', JSON.stringify(daftarGrup));
+  selectedMembers = [];
+  document.getElementById('gn-nama').value = '';
+  document.getElementById('form-grup').classList.remove('show');
+  renderKontakList();
+  renderChatList();
+  renderMemberList();
+  toast('✅ Grup "' + nama + '" berhasil dibuat!');
+}
+
+// ===========================
+// CHAT / KIRIM PESAN
+// ===========================
+function kirimPesan() {
+  const inp = document.getElementById('msg-inp');
+  const pesan = inp.value.trim();
+  if (!pesan || !openRoom) return;
+  const now = new Date();
+  const waktu = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  const data = { roomId: openRoom.id, nama: me.nama, nomor: me.nomor, pesan, waktu };
+
+  if (socket) {
+    socket.emit('kirim-pesan', data);
+  } else {
+    tampilBubble(data);
+    scrollBawah();
+    updateChatPreview(data);
+  }
+  inp.value = '';
+  inp.style.height = 'auto';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('msg-inp');
+  if (inp) {
+    inp.addEventListener('keypress', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); kirimPesan(); } });
+    inp.addEventListener('input', () => {
+      if (socket && openRoom) {
+        socket.emit('sedang-mengetik', { roomId: openRoom.id, nama: me.nama });
+        clearTimeout(window._typingTimer);
+        window._typingTimer = setTimeout(() => socket.emit('berhenti-mengetik', { roomId: openRoom.id }), 1500);
+      }
+    });
+  }
+});
+
+function tampilBubble(data) {
+  const posisi = (data.nama === me.nama) ? 'r' : 'l';
+  const wrapper = document.createElement('div');
+  wrapper.className = `mw ${posisi}`;
+  wrapper.innerHTML = `
+    <div class="mb">
+      <span class="sname">${escH(data.nama)}</span>
+      <div>${escH(data.pesan)}</div>
+      <div class="mmeta"><span>${data.waktu}</span></div>
+    </div>`;
+  document.getElementById('box-pesan').appendChild(wrapper);
+}
+
+function tambahDivider(label) {
+  const d = document.createElement('div');
+  d.className = 'date-div';
+  d.innerHTML = `<span>${label}</span>`;
+  document.getElementById('box-pesan').appendChild(d);
+}
+
+function scrollBawah() {
+  const b = document.getElementById('box-pesan');
+  if (b) b.scrollTop = b.scrollHeight;
+}
+
+function hapusChat() {
+  if (!confirm('Hapus semua chat di layar ini?')) return;
+  document.getElementById('box-pesan').innerHTML = '';
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ===========================
+// EMOJI
+// ===========================
+function buatEmojiPicker() {
+  const p = document.getElementById('emoji-picker');
+  if (!p) return;
+  EMOJIS.forEach(e => {
+    const btn = document.createElement('button');
+    btn.className = 'ep-emoji';
+    btn.textContent = e;
+    btn.onclick = () => {
+      const inp = document.getElementById('msg-inp');
+      inp.value += e;
+      inp.focus();
+    };
+    p.appendChild(btn);
+  });
+}
+
+function toggleEmoji() {
+  document.getElementById('emoji-picker').classList.toggle('show');
+}
+
+// ===========================
+// STATUS
+// ===========================
+function buatStatus() {
+  const isi = prompt('Tulis status kamu:');
+  if (!isi || !isi.trim()) return;
+  const now = new Date();
+  const waktu = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  const s = { id: Date.now(), nama: me.nama, isi: isi.trim(), waktu: 'Hari ini ' + waktu };
+  daftarStatus.unshift(s);
+  localStorage.setItem('elmon_status', JSON.stringify(daftarStatus));
+  if (socket) socket.emit('buat-status', s);
+  renderStatusList();
+  document.getElementById('my-status-hint').textContent = isi.substring(0, 30) + '...';
+  document.getElementById('my-status-ring').className = 'status-ring has';
+  toast('✅ Status dibagikan!');
+}
+
+function renderStatusList() {
+  const c = document.getElementById('status-list');
+  if (!daftarStatus.length) {
+    c.innerHTML = `<div class="empty-state"><div class="es-ico" style="font-size:40px">⭕</div><p>Belum ada status terkini</p></div>`;
+    return;
+  }
+  c.innerHTML = daftarStatus.map(s => `
+    <div class="status-my" style="cursor:pointer" onclick="lihatStatus('${s.id}')">
+      <div class="status-ring has">
+        <div class="status-inner">${getAvaEmoji(s.nama)}</div>
+      </div>
+      <div class="status-detail">
+        <div class="sn">${escH(s.nama)}</div>
+        <div class="st">${s.waktu}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function lihatStatus(id) {
+  const s = daftarStatus.find(x => x.id == id);
+  if (!s) return;
+  document.getElementById('sv-content').textContent = s.isi;
+  document.getElementById('sv-user').textContent = s.nama + ' · ' + s.waktu;
+  const fill = document.getElementById('sv-fill');
+  fill.style.animation = 'none';
+  fill.offsetHeight;
+  fill.style.animation = 'svfill 5s linear forwards';
+  document.getElementById('status-viewer').classList.add('show');
+  setTimeout(tutupStatus, 5000);
+}
+
+function tutupStatus() {
+  document.getElementById('status-viewer').classList.remove('show');
+}
+
+// ===========================
+// PROFIL
+// ===========================
+function renderProfil() {
+  if (!me) return;
+  const setEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  setEl('prof-name-el', me.nama);
+  setEl('prof-phone-el', me.nomor);
+  setEl('pf-nama', me.nama);
+  setEl('pf-phone', me.nomor);
+  setEl('pf-bio', me.bio || 'Tap untuk isi bio');
+  setEl('my-status-name', me.nama);
+  if (me.ava) {
+    ['prof-ava-el','my-ava-hdr','my-status-ava'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.backgroundImage = `url(${me.ava})`;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+      el.textContent = '';
+    });
+  } else {
+    setEl('prof-ava-el', getAvaEmoji(me.nama));
+    setEl('my-ava-hdr', getAvaEmoji(me.nama));
+    setEl('my-status-ava', getAvaEmoji(me.nama));
+  }
+}
+
+function editField(field) {
+  currentEditField = field;
+  const map = { nama: ['Edit Nama', me.nama, 'Nama ini terlihat oleh semua pengguna'], phone: ['Edit Nomor HP', me.nomor, 'Nomor ini digunakan untuk identifikasi'], bio: ['Edit Bio', me.bio, 'Ceritakan sesuatu tentang dirimu'] };
+  const [title, val, desc] = map[field];
+  document.getElementById('pem-title').textContent = title;
+  document.getElementById('pem-inp').value = val;
+  document.getElementById('pem-desc').textContent = desc;
+  document.getElementById('prof-edit-modal').classList.add('show');
+}
+
+function simpanEditField() {
+  const val = document.getElementById('pem-inp').value.trim();
+  if (!val) { toast('⚠️ Tidak boleh kosong!'); return; }
+  if (currentEditField === 'nama') me.nama = val;
+  else if (currentEditField === 'phone') me.nomor = val;
+  else if (currentEditField === 'bio') me.bio = val;
+  localStorage.setItem('elmon_me', JSON.stringify(me));
+  renderProfil();
+  document.getElementById('prof-edit-modal').classList.remove('show');
+  toast('✅ Profil diperbarui!');
+}
+
+function gantiAva(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    me.ava = e.target.result;
+    localStorage.setItem('elmon_me', JSON.stringify(me));
+    renderProfil();
+    toast('✅ Foto profil diperbarui!');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===========================
+// TELEPON
+// ===========================
+function mulaiTelepon() {
+  if (!openRoom) return;
+  bukaCall(openRoom.nama, openRoom.ava);
+}
+
+function mulaiCallKontak(id, e) {
+  e.stopPropagation();
+  const k = kontak.find(x => x.id === id);
+  if (!k) return;
+  bukaCall(k.nama, k.ava);
+}
+
+function bukaCall(nama, ava) {
+  document.getElementById('call-name').textContent = nama;
+  document.getElementById('call-status').textContent = 'Memanggil...';
+  document.getElementById('call-timer').style.display = 'none';
+  const avaEl = document.getElementById('call-ava');
+  if (ava) { avaEl.style.backgroundImage = `url(${ava})`; avaEl.style.backgroundSize = 'cover'; avaEl.textContent = ''; }
+  else { avaEl.textContent = getAvaEmoji(nama); }
+  showScreen('s-call');
+  setTimeout(() => {
+    document.getElementById('call-status').textContent = 'Terhubung';
+    document.getElementById('call-timer').style.display = 'block';
+    callSeconds = 0;
+    callTimer = setInterval(() => {
+      callSeconds++;
+      const m = Math.floor(callSeconds / 60).toString().padStart(2,'0');
+      const s = (callSeconds % 60).toString().padStart(2,'0');
+      document.getElementById('call-timer').textContent = `${m}:${s}`;
+    }, 1000);
+  }, 2000);
+}
+
+function akhiriTelepon() {
+  clearInterval(callTimer);
+  callSeconds = 0;
+  isMuted = false;
+  isSpeaker = false;
+  document.getElementById('mute-btn').textContent = '🎤';
+  document.getElementById('spk-btn').textContent = '🔈';
+  if (openRoom) showScreen('s-room');
+  else showScreen('s-main');
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+  document.getElementById('mute-btn').textContent = isMuted ? '🔇' : '🎤';
+  toast(isMuted ? '🔇 Mikrofon dimatikan' : '🎤 Mikrofon aktif');
+}
+function toggleSpk() {
+  isSpeaker = !isSpeaker;
+  document.getElementById('spk-btn').textContent = isSpeaker ? '🔊' : '🔈';
+  toast(isSpeaker ? '🔊 Speaker aktif' : '🔈 Speaker nonaktif');
+}
+
+// ===========================
+// OVERLAY / MENU
+// ===========================
+function showOverlay(title, html) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('overlay').classList.add('show');
+}
+function tutupOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+function showMainMenu() {
+  showOverlay('Menu', `
+    <div class="sheet-opt" onclick="tutupOverlay();showTab('kontak',null)"><span class="so-ico">➕</span> Kontak Baru</div>
+    <div class="sheet-opt" onclick="tutupOverlay();showTab('grup',null)"><span class="so-ico">👥</span> Grup Baru</div>
+    <div class="sheet-opt" onclick="tutupOverlay();showTab('status',null)"><span class="so-ico">⭕</span> Lihat Status</div>
+    <div class="sheet-opt" onclick="tutupOverlay();logout()" style="color:var(--rd)"><span class="so-ico">🚪</span> Keluar</div>
+  `);
+}
+
+function showRoomMenu() {
+  showOverlay('Opsi Chat', `
+    <div class="sheet-opt" onclick="tutupOverlay();hapusChat()"><span class="so-ico">🗑️</span> Hapus Chat</div>
+    <div class="sheet-opt" onclick="tutupOverlay();mulaiTelepon()"><span class="so-ico">📞</span> Mulai Panggilan</div>
+    <div class="sheet-opt" onclick="tutupOverlay();kembali()"><span class="so-ico">🚪</span> Keluar Dari Chat</div>
+  `);
+}
+
+function showSearch() {
+  showOverlay('🔍 Cari Chat', `
+    <input style="width:100%;background:var(--ib);border:none;border-bottom:2px solid var(--g);padding:10px 12px;color:var(--tx);font-size:15px;outline:none;border-radius:6px 6px 0 0;margin-bottom:12px" placeholder="Cari nama kontak atau grup..." oninput="filterChat(this.value)">
+    <div id="search-results"></div>
+  `);
+}
+
+function filterChat(q) {
+  const all = [...kontak, ...daftarGrup];
+  const res = all.filter(r => r.nama.toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('search-results').innerHTML = res.map(r => `
+    <div class="kontak-item" onclick="tutupOverlay();bukaRoom(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <div class="ki-ava">${r.isGrup ? '👥' : getAvaEmoji(r.nama)}</div>
+      <div class="ki-info"><div class="ki-name">${escH(r.nama)}</div><div class="ki-phone">${r.nomor || 'Grup'}</div></div>
+    </div>
+  `).join('') || `<div style="color:var(--tm);font-size:13px;padding:10px">Tidak ditemukan</div>`;
+}
+
+// ===========================
+// TOAST
+// ===========================
+let _toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===========================
+// UTILS
+// ===========================
+function escH(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const AVA_EMOJIS = ['🐱','🐶','🐸','🦊','🐼','🐨','🦁','🐯','🐺','🦄','🐻','🦝'];
+function getAvaEmoji(nama) {
+  if (!nama) return '👤';
+  let sum = 0;
+  for (let c of nama) sum += c.charCodeAt(0);
+  return AVA_EMOJIS[sum % AVA_EMOJIS.length];
+}
+
+// ===========================
+// START
+// ===========================
+init();
+</script>
+</body>
+</html>
